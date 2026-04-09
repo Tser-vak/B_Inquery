@@ -1,0 +1,61 @@
+# ========================
+# Dependencies
+# ========================
+node_modules/
+
+# ========================
+# Build Output
+# ========================
+dist/
+dist-ssr/
+
+# ========================
+# Logs
+# ========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+log.json
+
+# ========================
+# Environment Variables
+# ========================
+.env
+*.env
+.env.*
+*.local
+
+# ========================
+# 3D Model Files (large binaries - ignored everywhere)
+# ========================
+**/*.glb
+**/*.gltf
+**/*.fbx
+**/*.obj
+
+# ========================
+# Dev/Test Files
+# ========================
+testExtension.js
+
+# ========================
+# Editor Directories
+# ========================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+
+# ========================
+# OS
+# ========================
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

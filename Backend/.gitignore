@@ -1,0 +1,46 @@
+# ========================
+# SECRET & SENSITIVE DATA
+# ========================
+.env
+*.env
+.env.*
+
+# ========================
+# Python Virtual Environment
+# ========================
+.venv/
+venv/
+env/
+
+# ========================
+# Python Cache
+# ========================
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ========================
+# ML / ONNX Model Files (large binary files)
+# ========================
+onxx_models/*.onnx
+*.onnx
+
+# ========================
+# Django
+# ========================
+db.sqlite3
+*.sqlite3
+media/
+staticfiles/
+
+# ========================
+# OS & Editor
+# ========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.sw?
