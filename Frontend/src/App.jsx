@@ -130,10 +130,28 @@ function RotatingTeliko({ zoomedIn }) {
   )
 }
 
-function CustomLoader({ show }) {
+function CustomLoader({ show, onComplete }) {
   const { active, progress } = useProgress()
   
-  if (!active || !show) return null
+  // As soon as progress hits 100, wait 800ms before removing the loading screen.
+  // This allows the user to see the "100%" feedback and creates a cinematic fade!
+  useEffect(() => {
+    // If it's no longer actively loading (or hits 100%), start the 800ms timer
+    if (show && (!active || progress === 100)) {
+      const timer = setTimeout(() => {
+        if (onComplete) onComplete()
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+    // We intentionally omit onComplete from dependencies because it's an inline 
+    // lambda function in App.jsx. Including it causes the timer to constantly reset!
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, active, progress])
+
+  if (!show) return null
+
+  // Ensure progress never jumps backwards and shows 100 when done
+  const displayProgress = Math.max(10, Math.round(progress))
 
   return (
     <div style={{
@@ -142,10 +160,10 @@ function CustomLoader({ show }) {
       justifyContent: 'center', alignItems: 'center', zIndex: 9999
     }}>
       <div style={{ width: '300px', height: '20px', backgroundColor: '#333', borderRadius: '10px', overflow: 'hidden' }}>
-        <div style={{ width: `${progress}%`, height: '100%', backgroundColor: '#FFD700', transition: 'width 0.3s' }} />
+        <div style={{ width: `${displayProgress}%`, height: '100%', backgroundColor: '#FFD700', transition: 'width 0.3s' }} />
       </div>
       <p style={{ color: '#FFD700', marginTop: '15px', fontFamily: 'sans-serif', fontWeight: 'bold' }}>
-        Loading Environment... {Math.round(progress)}%
+        Loading Environment... {displayProgress}%
       </p>
     </div>
   )
@@ -153,13 +171,23 @@ function CustomLoader({ show }) {
 
 function App() {
   const [zoomedIn, setZoomedIn] = useState(false)
+  const [isOverlayVisible, setIsOverlayVisible] = useState(false)
 
   // Listen for the Enter key anywhere on the website
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Toggles the zoom state when Enter is struck
       if (e.key === 'Enter') {
-        setZoomedIn(prev => !prev)
+        setZoomedIn(prev => {
+          const nextState = !prev
+          if (nextState) {
+            // When transitioning TO the world, trigger the loading screen immediately
+            setIsOverlayVisible(true)
+          } else {
+            // When transitioning BACK to intro, no loading screen is needed
+            setIsOverlayVisible(false)
+          }
+          return nextState
+        })
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -168,7 +196,7 @@ function App() {
 
   return (
     <>
-      <CustomLoader show={zoomedIn} />
+      <CustomLoader show={isOverlayVisible} onComplete={() => setIsOverlayVisible(false)} />
       <div id="canvas-container" style={{ height: '100vh', width: '100vw' }}>
         <Canvas fov={75}>
         <SheetProvider sheet={sheet}>

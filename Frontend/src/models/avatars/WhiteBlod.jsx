@@ -46,12 +46,15 @@ export function WhiteBlod(props) {
   const hopHeight = 0.75 // Controls the bouncy visual "bob" height when walking
   const hopSpeed = 12 // Controls how fast the "bob" animation plays (speed of walking)
   const hopTime = useRef(0)
+  const jumpCooldown = useRef(0)
 
   const direction = new THREE.Vector3()
 
   useFrame((state, delta) => {
     if (!group.current || !rbRef.current) return
     if (props.active === false) return
+
+    if (jumpCooldown.current > 0) jumpCooldown.current -= delta
 
     const worldPos = rbRef.current.translation()
     if (worldPos.y < -20) {
@@ -98,9 +101,10 @@ export function WhiteBlod(props) {
 
       let velY = rbRef.current.linvel().y
       // Relaxed from 0.1 to 1.0 because walking on bumpy terrain causes small Y velocity jitters!
-      if (keys.space && !spaceHandled.current && Math.abs(velY) < 1.0) {
+      if (keys.space && !spaceHandled.current && Math.abs(velY) < 1.0 && jumpCooldown.current <= 0) {
         velY = 22 // Increased jump power
         spaceHandled.current = true
+        jumpCooldown.current = 1.25 // Blocks jumping again for ~1.25s (until you land)
       }
 
       // Update Physics Velocity instead of static position
@@ -110,9 +114,10 @@ export function WhiteBlod(props) {
       group.current.position.y = Math.abs(Math.sin(hopTime.current)) * hopHeight
     } else {
       let velY = rbRef.current.linvel().y
-      if (keys.space && !spaceHandled.current && Math.abs(velY) < 1.0) {
+      if (keys.space && !spaceHandled.current && Math.abs(velY) < 1.0 && jumpCooldown.current <= 0) {
         velY = 22 // Increased jump power
         spaceHandled.current = true
+        jumpCooldown.current = 1.25 // Blocks jumping again for ~1.25s (until you land)
       }
 
       hopTime.current = 0
