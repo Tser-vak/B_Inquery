@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import React, { useRef, useState, useEffect, Suspense, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Environment, Center, PerspectiveCamera, Float } from '@react-three/drei'
+import { OrbitControls, Environment, Center, PerspectiveCamera, Float, useProgress } from '@react-three/drei'
+import { Physics } from '@react-three/rapier'
 import { getProject } from '@theatre/core'
 import _studio from '@theatre/studio'
 import extension from '@theatre/r3f/dist/extension'
@@ -9,7 +10,8 @@ import { SheetProvider, editable as e } from '@theatre/r3f'
 import './App.css'
 import { Model as TelikoModel } from './models/terrain/Teliko_model'
 import { Model as BcgMod } from './models/terrain/neuronal_cell_environment_v1'
-import { WhiteBlod } from './models/Avatars/WhiteBlod'
+import { WhiteBlod } from './models/avatars/WhiteBlod'
+import { Model as TelikoComp } from './models/terrain/Teliko_comp'
 
 const studio = _studio.extend ? _studio : _studio.default
 
@@ -29,8 +31,8 @@ function CameraManager({ zoomedIn }) {
   const outTarget = useMemo(() => new THREE.Vector3(0, 0, 0), [])
 
   // The coordinates you provided!
-  const inPos = useMemo(() => new THREE.Vector3(2.59, 6.83, 2.82), []) 
-  const inTarget = useMemo(() => new THREE.Vector3(0.00, 0.00, 0.00), []) 
+  const inPos = useMemo(() => new THREE.Vector3(2.59, 6.83, 2.82), [])
+  const inTarget = useMemo(() => new THREE.Vector3(0.00, 0.00, 0.00), [])
 
   useFrame((state) => {
     // Only manage the camera in the generic zoomed out state
@@ -124,6 +126,27 @@ function RotatingTeliko({ zoomedIn }) {
   )
 }
 
+function CustomLoader({ show }) {
+  const { active, progress } = useProgress()
+  
+  if (!active || !show) return null
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh',
+      backgroundColor: 'black', display: 'flex', flexDirection: 'column',
+      justifyContent: 'center', alignItems: 'center', zIndex: 9999
+    }}>
+      <div style={{ width: '300px', height: '20px', backgroundColor: '#333', borderRadius: '10px', overflow: 'hidden' }}>
+        <div style={{ width: `${progress}%`, height: '100%', backgroundColor: '#FFD700', transition: 'width 0.3s' }} />
+      </div>
+      <p style={{ color: '#FFD700', marginTop: '15px', fontFamily: 'sans-serif', fontWeight: 'bold' }}>
+        Loading Environment... {Math.round(progress)}%
+      </p>
+    </div>
+  )
+}
+
 function App() {
   const [zoomedIn, setZoomedIn] = useState(false)
 
@@ -140,8 +163,10 @@ function App() {
   }, [])
 
   return (
-    <div id="canvas-container" style={{ height: '100vh', width: '100vw' }}>
-      <Canvas fov={75}>
+    <>
+      <CustomLoader show={zoomedIn} />
+      <div id="canvas-container" style={{ height: '100vh', width: '100vw' }}>
+        <Canvas fov={75}>
         <SheetProvider sheet={sheet}>
           {/* Base ambient lighting to avoid pure black shadows */}
           <ambientLight intensity={0.35} color={[0.77, 0.73, 0.73]} />
@@ -154,14 +179,19 @@ function App() {
           {/* Environment map with lowered intensity to dim reflections */}
           <Environment preset="city" environmentIntensity={0.8} />
           <Suspense fallback={null}>
-            {/* <BackgroundModels count={200} /> */}
-            <RotatingTeliko zoomedIn={zoomedIn} />
-            {zoomedIn && <WhiteBlod active={zoomedIn} position={[0, 8, 2]} />}
+            {!zoomedIn && <RotatingTeliko zoomedIn={zoomedIn} />}
+            {zoomedIn && (
+              <Physics>
+                <TelikoComp />
+                <WhiteBlod active={zoomedIn} position={[0, 8, 2]} />
+              </Physics>
+            )}
           </Suspense>
           <CameraManager zoomedIn={zoomedIn} />
         </SheetProvider>
       </Canvas>
     </div>
+    </>
   )
 }
 
