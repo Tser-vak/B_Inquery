@@ -11,7 +11,7 @@ import './App.css'
 import { Model as TelikoModel } from './models/terrain/Teliko_model'
 import { Model as BcgMod } from './models/terrain/neuronal_cell_environment_v1'
 import { WhiteBlod } from './models/avatars/WhiteBlod'
-import { Model as TelikoComp } from './models/terrain/Teliko_comp'
+import { Model as FixedTerrainComp } from './models/terrain/Fixed_terrain_comp'
 
 const studio = _studio.extend ? _studio : _studio.default
 
@@ -45,19 +45,23 @@ function CameraManager({ zoomedIn }) {
     }
   })
 
-  // Remove OrbitControls entirely while zoomed in so WhiteBlod can drive the camera freely
-  if (zoomedIn) return null
+  // When we switch to zoomedIn, instantly move the camera close to the avatar
+  useEffect(() => {
+    if (zoomedIn) {
+      camera.position.set(0, 10, 15)
+    }
+  }, [zoomedIn, camera])
 
-  // Reverted back to classic OrbitControls!
+  // We always return OrbitControls now so the user can orbit/drag the view.
   return (
     <OrbitControls
       makeDefault
       ref={controlsRef}
-      onChange={(e) => {
-        const pos = e.target.object.position
-        const target = e.target.target
-        console.log(`Position: [${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}]`)
-        console.log(`Target: [${target.x.toFixed(2)}, ${target.y.toFixed(2)}, ${target.z.toFixed(2)}]`)
+      enablePan={false} // Disable standard panning so they don't drag the screen away from the character
+      mouseButtons={{
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.ROTATE // Binds right-click to changing the view (orbiting)
       }}
     />
   )
@@ -182,7 +186,7 @@ function App() {
             {!zoomedIn && <RotatingTeliko zoomedIn={zoomedIn} />}
             {zoomedIn && (
               <Physics>
-                <TelikoComp />
+                <FixedTerrainComp />
                 <WhiteBlod active={zoomedIn} position={[0, 8, 2]} />
               </Physics>
             )}
