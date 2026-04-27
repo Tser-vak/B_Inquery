@@ -21,6 +21,13 @@ export function WhiteBlod(props) {
         setKeys((k) => ({ ...k, [key]: true }))
       } else if (key === ' ') {
         setKeys((k) => ({ ...k, space: true }))
+      } else if (key === 'p') {
+        // Handy debug tool to find exactly where you are standing!
+        if (rbRef.current) {
+          const pos = rbRef.current.translation()
+          alert(`Your Coordinate is: [${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}]`)
+          console.log(`Copy this into App.jsx: position={[${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}]}`)
+        }
       }
     }
     const upHandler = (e) => {
@@ -42,7 +49,7 @@ export function WhiteBlod(props) {
     }
   }, [])
 
-  const moveSpeed = 3.5 // <--- THIS controls how fast you walk straight ahead and sideways
+  const moveSpeed = 5 // <--- THIS controls how fast you walk straight ahead and sideways
   const hopHeight = 0.75 // Controls the bouncy visual "bob" height when walking
   const hopSpeed = 12 // Controls how fast the "bob" animation plays (speed of walking)
   const hopTime = useRef(0)
@@ -58,7 +65,7 @@ export function WhiteBlod(props) {
 
     const worldPos = rbRef.current.translation()
     if (worldPos.y < -20) {
-      const startPos = props.position || [0, 8, 2]
+      const startPos = props.position || [0, 40, 2]
       rbRef.current.setTranslation({ x: startPos[0], y: startPos[1], z: startPos[2] }, true)
       rbRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
       return
@@ -154,10 +161,10 @@ export function WhiteBlod(props) {
   return (
     <RigidBody
       ref={rbRef}
-      position={position || [0, 8, 2]}
+      position={position || [0, 60, 2]}
       colliders={false}
       enabledRotations={[false, false, false]}
-      friction={0}
+      friction={2}
       gravityScale={3.5} // Makes the avatar fall much faster and feel heavier
     >
       <CapsuleCollider args={[0.5, 0.5]} position={[0, 1, 0]} />

@@ -9,9 +9,10 @@ import extension from '@theatre/r3f/dist/extension'
 import { SheetProvider, editable as e } from '@theatre/r3f'
 import './App.css'
 import { Model as TelikoModel } from './models/terrain/Teliko_model'
-import { Model as BcgMod } from './models/terrain/neuronal_cell_environment_v1'
 import { WhiteBlod } from './models/avatars/WhiteBlod'
-import { Model as FixedTerrainComp } from './models/terrain/Fixed_terrain_comp'
+import { Model as StaticTerrain } from './models/terrain/Made_terrain'
+import { Model as ThePc } from './models/avatars/The_pc'
+import { ThePaper } from './models/avatars/The_paper'
 
 const studio = _studio.extend ? _studio : _studio.default
 
@@ -132,26 +133,49 @@ function RotatingTeliko({ zoomedIn }) {
 
 function CustomLoader({ show, onComplete }) {
   const { active, progress } = useProgress()
-  
-  // As soon as progress hits 100, wait 800ms before removing the loading screen.
-  // This allows the user to see the "100%" feedback and creates a cinematic fade!
+  const [visualProgress, setVisualProgress] = useState(0)
+
+  // Smoothly increment visual progress so it actually looks like a loading bar,
+  // even if the local development server instantly loads the 3D models.
   useEffect(() => {
-    // If it's no longer actively loading (or hits 100%), start the 800ms timer
-    if (show && (!active || progress === 100)) {
+    if (!show) {
+      setVisualProgress(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      setVisualProgress((prev) => {
+        // When active is false but progress is 0, it means it hasn't started yet.
+        // If it loaded instantly from cache, progress will be 100.
+        const target = progress
+
+        if (prev < target) {
+          // Increment by a random small amount to simulate realistic loading
+          return Math.min(prev + (Math.random() * 5 + 1), target)
+        } else if (prev < 100 && !active && progress === 100) {
+          // Catch all to force it to 100 if we somehow missed it
+          return Math.min(prev + 5, 100)
+        }
+        return prev
+      })
+    }, 40)
+
+    return () => clearInterval(interval)
+  }, [show, progress, active])
+
+  useEffect(() => {
+    // Only trigger complete when the VISUAL bar actually hits 100%
+    if (show && Math.round(visualProgress) >= 100) {
       const timer = setTimeout(() => {
         if (onComplete) onComplete()
-      }, 200)
+      }, 400) // Small cinematic pause at 100%
       return () => clearTimeout(timer)
     }
-    // We intentionally omit onComplete from dependencies because it's an inline 
-    // lambda function in App.jsx. Including it causes the timer to constantly reset!
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show, active, progress])
+  }, [show, visualProgress, onComplete])
 
   if (!show) return null
 
-  // Ensure progress never jumps backwards and shows 100 when done
-  const displayProgress = Math.max(10, Math.round(progress))
+  const displayProgress = Math.min(100, Math.round(visualProgress))
 
   return (
     <div style={{
@@ -160,7 +184,7 @@ function CustomLoader({ show, onComplete }) {
       justifyContent: 'center', alignItems: 'center', zIndex: 9999
     }}>
       <div style={{ width: '300px', height: '20px', backgroundColor: '#333', borderRadius: '10px', overflow: 'hidden' }}>
-        <div style={{ width: `${displayProgress}%`, height: '100%', backgroundColor: '#FFD700', transition: 'width 0.3s' }} />
+        <div style={{ width: `${displayProgress}%`, height: '100%', backgroundColor: '#FFD700', transition: 'width 0.1s linear' }} />
       </div>
       <p style={{ color: '#FFD700', marginTop: '15px', fontFamily: 'sans-serif', fontWeight: 'bold' }}>
         Loading Environment... {displayProgress}%
@@ -199,30 +223,32 @@ function App() {
       <CustomLoader show={isOverlayVisible} onComplete={() => setIsOverlayVisible(false)} />
       <div id="canvas-container" style={{ height: '100vh', width: '100vw' }}>
         <Canvas fov={75}>
-        <SheetProvider sheet={sheet}>
-          {/* Base ambient lighting to avoid pure black shadows */}
-          <ambientLight intensity={0.35} color={[0.77, 0.73, 0.73]} />
+          <SheetProvider sheet={sheet}>
+            {/* Base ambient lighting to avoid pure black shadows */}
+            <ambientLight intensity={0.35} color={[0.77, 0.73, 0.73]} />
 
-          {/* Key light acting as the 'sun' to create shadows and structure */}
-          <directionalLight position={[5, 10, 5]} intensity={1.5} color={[1, 0.95, 0.95]} />
-          {/* Fill light from the back to softly illuminate the darker side */}
-          <directionalLight position={[-5, 5, -5]} intensity={1.5} />
+            {/* Key light acting as the 'sun' to create shadows and structure */}
+            <directionalLight position={[5, 10, 5]} intensity={1.5} color={[1, 0.95, 0.95]} />
+            {/* Fill light from the back to softly illuminate the darker side */}
+            <directionalLight position={[-5, 5, -5]} intensity={1.5} />
 
-          {/* Environment map with lowered intensity to dim reflections */}
-          <Environment preset="city" environmentIntensity={0.8} />
-          <Suspense fallback={null}>
-            {!zoomedIn && <RotatingTeliko zoomedIn={zoomedIn} />}
-            {zoomedIn && (
-              <Physics>
-                <FixedTerrainComp />
-                <WhiteBlod active={zoomedIn} position={[0, 8, 2]} />
-              </Physics>
-            )}
-          </Suspense>
-          <CameraManager zoomedIn={zoomedIn} />
-        </SheetProvider>
-      </Canvas>
-    </div>
+            {/* Environment map with lowered intensity to dim reflections */}
+            <Environment preset="city" environmentIntensity={0.8} />
+            <Suspense fallback={null}>
+              {!zoomedIn && <RotatingTeliko zoomedIn={zoomedIn} />}
+              {zoomedIn && (
+                <Physics>
+                  <StaticTerrain />
+                  <ThePc position={[43, 5, -24]} />
+                  <ThePaper position={[-12, 5, 10]} />
+                  <WhiteBlod active={zoomedIn} position={[0, 60, 2]} />
+                </Physics>
+              )}
+            </Suspense>
+            <CameraManager zoomedIn={zoomedIn} />
+          </SheetProvider>
+        </Canvas>
+      </div>
     </>
   )
 }
