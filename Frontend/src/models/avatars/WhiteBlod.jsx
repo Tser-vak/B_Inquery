@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
+import { GameState } from '../../store'
 
 export function WhiteBlod(props) {
   const group = useRef()
@@ -60,6 +61,12 @@ export function WhiteBlod(props) {
   useFrame((state, delta) => {
     if (!group.current || !rbRef.current) return
     if (props.active === false) return
+
+    if (GameState.isInteractionOpen) {
+      // Freeze movement while interaction is active
+      rbRef.current.setLinvel({ x: 0, y: rbRef.current.linvel().y, z: 0 }, true)
+      return
+    }
 
     if (jumpCooldown.current > 0) jumpCooldown.current -= delta
 

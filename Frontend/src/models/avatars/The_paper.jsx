@@ -5,9 +5,10 @@ Files: the_paper.glb [0.36KB] > C:\Users\Max\Desktop\B_Inquery\Frontend\public\m
 */
 
 import React, { useRef, useState, useEffect } from 'react'
-import { useGLTF, Float, Html } from '@react-three/drei'
+import { Float, Html, useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { GameState } from '../../store'
 
 export function ThePaper(props) {
   const groupRef = useRef()
@@ -23,14 +24,85 @@ export function ThePaper(props) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key.toLowerCase() === 'f' && inRange) {
+      if (e.key.toLowerCase() === 'f' && inRange && !showOverlay) {
         targetRotationY.current += Math.PI * 2
-        setShowOverlay((prev) => !prev)
+        // Wait for the rotation animation to mostly finish before showing the pop-up
+        setTimeout(() => {
+          setShowOverlay(true)
+          GameState.isInteractionOpen = true
+          if (GameState.controlsRef) GameState.controlsRef.enabled = false
+
+          GameState.updateOverlay(
+            <div style={{
+              background: '#fffae6',
+              color: 'black',
+              border: '5px solid #ffd700',
+              padding: '40px',
+              borderRadius: '15px',
+              fontFamily: 'sans-serif',
+              width: '80vw',
+              maxWidth: '600px',
+              position: 'relative',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+            }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowOverlay(false);
+                  GameState.isInteractionOpen = false;
+                  if (GameState.controlsRef) GameState.controlsRef.enabled = true;
+                  GameState.updateOverlay(null);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '15px',
+                  right: '15px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'red',
+                  fontSize: '28px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  padding: '5px',
+                  transition: 'transform 0.2s',
+                }}
+                onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+              >
+                ✕
+              </button>
+              <h2 style={{ margin: '0 0 20px 0', fontSize: '36px', color: '#111' }}>📄 Creators Info</h2>
+              <p style={{ fontSize: '18px', lineHeight: '1.6', margin: '0 0 30px 0' }}>
+                Welcome to my portfolio! This web application was developed as part of a research project
+                focused on analyzing the inhibitor activity of compounds against
+                Monoamine Oxidase B (MAO-B) with the help of Machine Learning. The tool allows users to upload their
+                compound data and get a probability of its activity.
+                Developed by Maksym Chervak, a aspiring Full-stack ML engineer and software developer in the field of medicine,
+                this application aims to facilitate the study of enzyme-inhibitor
+                interactions and support drug discovery efforts.. Check out my work and professional history below.
+              </p>
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <a href="https://www.linkedin.com/in/mxchr" target="_blank" rel="noreferrer" style={{
+                  textDecoration: 'none', padding: '12px 24px', background: '#0077b5', color: 'white',
+                  borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px'
+                }}>
+                  LinkedIn
+                </a>
+                <a href="https://github.com/Tser-vak" target="_blank" rel="noreferrer" style={{
+                  textDecoration: 'none', padding: '12px 24px', background: '#333', color: 'white',
+                  borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px'
+                }}>
+                  GitHub
+                </a>
+              </div>
+            </div>
+          )
+        }, 800)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [inRange])
+  }, [inRange, showOverlay])
 
   useFrame((state, delta) => {
     if (!groupRef.current) return
@@ -42,26 +114,26 @@ export function ThePaper(props) {
     if (dist >= 15 && inRange) {
       setInRange(false)
       setShowOverlay(false)
+      GameState.updateOverlay(null)
     }
   })
 
   return (
     <group {...props} dispose={null}>
       {inRange && !showOverlay && (
-        <Html position={[0, 4, 0]} center distanceFactor={15}>
-          <div style={{ background: 'white', color: 'black', padding: '5px 12px', borderRadius: '15px', fontFamily: 'sans-serif', fontWeight: 'bold' }}>
+        <Html position={[0, 1, 2]} center distanceFactor={15}>
+          <div style={{ background: 'white', color: 'black', padding: '5px 12px', borderRadius: '15px', fontFamily: 'sans-serif', fontWeight: 'bold', pointerEvents: 'none' }}>
             💭 Press F
           </div>
         </Html>
       )}
-      {showOverlay && (
-        <Html position={[0, 6, 0]} center distanceFactor={15} zIndexRange={[100, 0]}>
-          <div style={{ background: '#fffae6', color: 'black', border: '3px solid #ffd700', padding: '15px', borderRadius: '8px', fontFamily: 'sans-serif', width: '220px', pointerEvents: 'none' }}>
-            <h3 style={{ margin: '0 0 10px 0' }}>📄 My CV</h3>
-            <p style={{ margin: 0, fontSize: '14px' }}>This is the magical floating CV.</p>
-          </div>
-        </Html>
-      )}
+      <group position={[0, 10, 0]}>
+        <pointLight intensity={3000} color="#ffd700" />
+        <mesh>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshBasicMaterial color="#ffd700" />
+        </mesh>
+      </group>
       <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
         <group ref={groupRef}>
           <primitive object={scene} />

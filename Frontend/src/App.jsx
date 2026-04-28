@@ -13,6 +13,7 @@ import { WhiteBlod } from './models/avatars/WhiteBlod'
 import { Model as StaticTerrain } from './models/terrain/Made_terrain'
 import { Model as ThePc } from './models/avatars/The_pc'
 import { ThePaper } from './models/avatars/The_paper'
+import { GameState } from './store'
 
 const studio = _studio.extend ? _studio : _studio.default
 
@@ -52,6 +53,12 @@ function CameraManager({ zoomedIn }) {
       camera.position.set(0, 10, 15)
     }
   }, [zoomedIn, camera])
+
+  useEffect(() => {
+    if (controlsRef.current) {
+       GameState.controlsRef = controlsRef.current
+    }
+  })
 
   // We always return OrbitControls now so the user can orbit/drag the view.
   return (
@@ -193,6 +200,26 @@ function CustomLoader({ show, onComplete }) {
   )
 }
 
+function OverlayManager() {
+  const [overlay, setOverlay] = useState(null)
+  
+  useEffect(() => {
+    GameState.updateOverlay = setOverlay;
+  }, [])
+
+  if (!overlay) return null;
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      backgroundColor: 'rgba(0, 0, 0, 0.75)', zIndex: 9999, display: 'flex',
+      justifyContent: 'center', alignItems: 'center', pointerEvents: 'auto'
+    }}>
+      {overlay}
+    </div>
+  )
+}
+
 function App() {
   const [zoomedIn, setZoomedIn] = useState(false)
   const [isOverlayVisible, setIsOverlayVisible] = useState(false)
@@ -221,6 +248,7 @@ function App() {
   return (
     <>
       <CustomLoader show={isOverlayVisible} onComplete={() => setIsOverlayVisible(false)} />
+      <OverlayManager />
       <div id="canvas-container" style={{ height: '100vh', width: '100vw' }}>
         <Canvas fov={75}>
           <SheetProvider sheet={sheet}>
@@ -240,8 +268,8 @@ function App() {
                 <Physics>
                   <StaticTerrain />
                   <ThePc position={[43, 5, -24]} />
-                  <ThePaper position={[-12, 5, 10]} />
-                  <WhiteBlod active={zoomedIn} position={[0, 60, 2]} />
+                  <ThePaper position={[-31.5, 25, 47.0]} />
+                  <WhiteBlod active={zoomedIn} position={[0, 50, 2]} />
                 </Physics>
               )}
             </Suspense>

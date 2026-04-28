@@ -8,6 +8,7 @@ import React, { useRef, useState, useEffect } from 'react'
 import { useGLTF, Float, Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { GameState } from '../../store'
 
 export function Model(props) {
   const groupRef = useRef()
@@ -23,14 +24,78 @@ export function Model(props) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'e') && inRange) {
+      if ((e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'e') && inRange && !showOverlay) {
         targetRotationY.current += Math.PI * 2
-        setShowOverlay((prev) => !prev)
+        setTimeout(() => {
+          setShowOverlay(true)
+          GameState.isInteractionOpen = true
+          if (GameState.controlsRef) GameState.controlsRef.enabled = false
+
+          GameState.updateOverlay(
+            <div style={{
+              background: '#e6f7ff',
+              color: 'black',
+              border: '5px solid #00aaff',
+              padding: '40px',
+              borderRadius: '15px',
+              fontFamily: 'monospace',
+              width: '80vw',
+              maxWidth: '600px',
+              position: 'relative',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+            }}>
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setShowOverlay(false);
+                  GameState.isInteractionOpen = false;
+                  if (GameState.controlsRef) GameState.controlsRef.enabled = true;
+                  GameState.updateOverlay(null);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '15px',
+                  right: '15px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'red',
+                  fontSize: '28px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  padding: '5px',
+                  transition: 'transform 0.2s',
+                }}
+                onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+              >
+                ✕
+              </button>
+              <h2 style={{ margin: '0 0 20px 0', fontSize: '36px', fontFamily: 'sans-serif', color: '#111' }}>💻 PC Terminal</h2>
+              <p style={{ fontSize: '18px', lineHeight: '1.6', margin: '0 0 30px 0', fontFamily: 'sans-serif' }}>
+                Welcome to the interactive workstation. Use this terminal to analyze data or browse projects.
+              </p>
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <button style={{ 
+                  border: 'none', cursor: 'pointer', padding: '12px 24px', background: '#00aaff', color: 'white', 
+                  borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'sans-serif'
+                }}>
+                  Analyze Data
+                </button>
+                <button style={{ 
+                  border: 'none', cursor: 'pointer', padding: '12px 24px', background: '#333', color: 'white', 
+                  borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'sans-serif'
+                }}>
+                  View Projects
+                </button>
+              </div>
+            </div>
+          )
+        }, 800)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [inRange])
+  }, [inRange, showOverlay])
 
   useFrame((state, delta) => {
     if (!groupRef.current) return
@@ -42,26 +107,26 @@ export function Model(props) {
     if (dist >= 15 && inRange) {
       setInRange(false)
       setShowOverlay(false)
+      GameState.updateOverlay(null)
     }
   })
 
   return (
     <group {...props} dispose={null}>
       {inRange && !showOverlay && (
-        <Html position={[0, 4, 0]} center distanceFactor={15}>
-          <div style={{ background: 'white', color: 'black', padding: '5px 12px', borderRadius: '15px', fontFamily: 'sans-serif', fontWeight: 'bold' }}>
+        <Html position={[0, 1, 2]} center distanceFactor={15}>
+          <div style={{ background: 'white', color: 'black', padding: '5px 12px', borderRadius: '15px', fontFamily: 'sans-serif', fontWeight: 'bold', pointerEvents: 'none' }}>
             💭 Press F
           </div>
         </Html>
       )}
-      {showOverlay && (
-        <Html position={[0, 6, 0]} center distanceFactor={15} zIndexRange={[100, 0]}>
-          <div style={{ background: '#e6f7ff', color: 'black', border: '3px solid #00aaff', padding: '15px', borderRadius: '8px', fontFamily: 'sans-serif', width: '220px', pointerEvents: 'none' }}>
-            <h3 style={{ margin: '0 0 10px 0' }}>💻 PC Terminal</h3>
-            <p style={{ margin: 0, fontSize: '14px' }}>Welcome to the interactive PC workstation.</p>
-          </div>
-        </Html>
-      )}
+      <group position={[0, 10, 0]}>
+        <pointLight intensity={3000} color="#00aaff" />
+        <mesh>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshBasicMaterial color="#00aaff" />
+        </mesh>
+      </group>
       <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
         <group ref={groupRef}>
           <mesh geometry={nodes.Cube_Material_0.geometry} material={materials['Material.001']} position={[0, 0, 0]} rotation={[-1.682, 0.083, -0.638]} scale={[1.057, 1, 1.08]} />
