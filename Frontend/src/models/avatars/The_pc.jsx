@@ -44,9 +44,9 @@ export function Model(props) {
               position: 'relative',
               boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
             }}>
-              <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
                   setShowOverlay(false);
                   GameState.isInteractionOpen = false;
                   if (GameState.controlsRef) GameState.controlsRef.enabled = true;
@@ -72,11 +72,11 @@ export function Model(props) {
               </button>
               <h2 style={{ margin: '0 0 20px 0', fontSize: '36px', fontFamily: 'sans-serif', color: '#111' }}>💻 PC Terminal</h2>
               <p style={{ fontSize: '18px', lineHeight: '1.6', margin: '0 0 30px 0', fontFamily: 'sans-serif' }}>
-                Welcome to the interactive workstation. Use this terminal to analyze data or browse projects.
+                Here we have the ML model for Predicting the inhibition of MAO-B enzyme. The template of the csv must be 1st collumn | ID | 2nd | Smiles.
               </p>
               <div style={{ display: 'flex', gap: '20px' }}>
-                <button style={{ 
-                  border: 'none', cursor: 'pointer', padding: '12px 24px', background: '#00aaff', color: 'white', 
+                <button style={{
+                  border: 'none', cursor: 'pointer', padding: '12px 24px', background: '#00aaff', color: 'white',
                   borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'sans-serif'
                 }}>
                   Analyze Data
