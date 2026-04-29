@@ -10,6 +10,205 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GameState } from '../../store'
 
+const PCInteractionUI = ({ onClose }) => {
+  const [file, setFile] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0])
+    setError(null)
+    setResult(null)
+  }
+
+  const handleAnalyzeClick = async () => {
+    if (!file) {
+      setError("Please select a CSV file first.")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    setResult(null)
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/predict/', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        let errorMsg = "Failed to analyze data"
+        try {
+          const errorData = await response.json()
+          errorMsg = errorData.error || errorMsg
+        } catch (_) { }
+        throw new Error(errorMsg)
+      }
+
+      const data = await response.json()
+      setResult(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const downloadAsCSV = () => {
+    if (!result || result.length === 0) return;
+
+    const headers = Object.keys(result[0]).join(',');
+    const rows = result.map(row =>
+      Object.values(row).map(val => `"${val}"`).join(',')
+    );
+    const csvContent = [headers, ...rows].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'predictions.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div style={{
+      background: '#e6f7ff',
+      color: 'black',
+      border: '5px solid #00aaff',
+      padding: '40px',
+      borderRadius: '15px',
+      fontFamily: 'monospace',
+      width: '80vw',
+      maxWidth: '600px',
+      position: 'relative',
+      boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+      maxHeight: '80vh',
+      overflowY: 'auto'
+    }}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onClose()
+        }}
+        style={{
+          position: 'absolute',
+          top: '15px',
+          right: '15px',
+          background: 'transparent',
+          border: 'none',
+          color: 'red',
+          fontSize: '28px',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          padding: '5px',
+          transition: 'transform 0.2s',
+        }}
+        onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+      >
+        ✕
+      </button>
+      <h2 style={{ margin: '0 0 20px 0', fontSize: '36px', fontFamily: 'sans-serif', color: '#111' }}>💻 PC Terminal</h2>
+      <p style={{ fontSize: '18px', lineHeight: '1.6', margin: '0 0 30px 0', fontFamily: 'sans-serif' }}>
+        Here we have the ML model for Predicting the inhibition of MAO-B enzyme. The template of the csv must be 1st column | ID | 2nd | Smiles.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <input
+          type="file"
+          accept=".csv"
+          onChange={handleFileChange}
+          style={{ fontSize: '16px', fontFamily: 'sans-serif' }}
+        />
+
+        <button
+          onClick={handleAnalyzeClick}
+          disabled={loading}
+          style={{
+            border: 'none',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            padding: '12px 24px',
+            background: loading ? '#88ccff' : '#00aaff',
+            color: 'white',
+            borderRadius: '8px',
+            fontWeight: 'bold',
+            fontSize: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontFamily: 'sans-serif',
+            width: 'max-content'
+          }}
+        >
+          {loading ? 'Analyzing...' : 'Analyze Data'}
+        </button>
+
+        {error && (
+          <div style={{ color: 'red', background: '#ffe6e6', padding: '10px', borderRadius: '5px', fontFamily: 'sans-serif' }}>
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {result && Array.isArray(result) && result.length > 0 && (
+          <div style={{ background: '#e6ffe6', padding: '15px', borderRadius: '8px', fontFamily: 'sans-serif', border: '1px solid #4caf50', width: '100%', overflowX: 'auto' }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#2e7d32' }}>Results:</h3>
+            <div style={{ maxHeight: '300px', overflowY: 'auto', background: 'white', padding: '0', borderRadius: '5px', border: '1px solid #ddd' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '14px' }}>
+                <thead style={{ position: 'sticky', top: 0, background: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
+                  <tr>
+                    {Object.keys(result[0]).map((key) => (
+                      <th key={key} style={{ padding: '10px', color: '#333', textAlign: 'center' }}>{key}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.map((row, index) => (
+                    <tr key={index} style={{ borderBottom: '1px solid #eee', background: index % 2 === 0 ? 'white' : '#fcfcfc' }}>
+                      {Object.values(row).map((val, i) => (
+                        <td key={i} style={{ padding: '10px', color: '#555', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }} title={val}>
+                          {typeof val === 'number' ? val.toFixed(4) : val}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button
+              onClick={downloadAsCSV}
+              style={{
+                marginTop: '15px',
+                padding: '8px 16px',
+                background: '#4caf50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontFamily: 'sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              📥 Download CSV (Excel)
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function Model(props) {
   const groupRef = useRef()
   const { nodes, materials } = useGLTF('/models/Avatars/the_pc-transformed.glb')
@@ -32,57 +231,12 @@ export function Model(props) {
           if (GameState.controlsRef) GameState.controlsRef.enabled = false
 
           GameState.updateOverlay(
-            <div style={{
-              background: '#e6f7ff',
-              color: 'black',
-              border: '5px solid #00aaff',
-              padding: '40px',
-              borderRadius: '15px',
-              fontFamily: 'monospace',
-              width: '80vw',
-              maxWidth: '600px',
-              position: 'relative',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
-            }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowOverlay(false);
-                  GameState.isInteractionOpen = false;
-                  if (GameState.controlsRef) GameState.controlsRef.enabled = true;
-                  GameState.updateOverlay(null);
-                }}
-                style={{
-                  position: 'absolute',
-                  top: '15px',
-                  right: '15px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'red',
-                  fontSize: '28px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  padding: '5px',
-                  transition: 'transform 0.2s',
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
-                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-              >
-                ✕
-              </button>
-              <h2 style={{ margin: '0 0 20px 0', fontSize: '36px', fontFamily: 'sans-serif', color: '#111' }}>💻 PC Terminal</h2>
-              <p style={{ fontSize: '18px', lineHeight: '1.6', margin: '0 0 30px 0', fontFamily: 'sans-serif' }}>
-                Here we have the ML model for Predicting the inhibition of MAO-B enzyme. The template of the csv must be 1st collumn | ID | 2nd | Smiles.
-              </p>
-              <div style={{ display: 'flex', gap: '20px' }}>
-                <button style={{
-                  border: 'none', cursor: 'pointer', padding: '12px 24px', background: '#00aaff', color: 'white',
-                  borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'sans-serif'
-                }}>
-                  Analyze Data
-                </button>
-              </div>
-            </div>
+            <PCInteractionUI onClose={() => {
+              setShowOverlay(false);
+              GameState.isInteractionOpen = false;
+              if (GameState.controlsRef) GameState.controlsRef.enabled = true;
+              GameState.updateOverlay(null);
+            }} />
           )
         }, 800)
       }
