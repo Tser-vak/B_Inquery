@@ -81,12 +81,6 @@ export function Model(props) {
                 }}>
                   Analyze Data
                 </button>
-                <button style={{ 
-                  border: 'none', cursor: 'pointer', padding: '12px 24px', background: '#333', color: 'white', 
-                  borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'sans-serif'
-                }}>
-                  View Projects
-                </button>
               </div>
             </div>
           )
